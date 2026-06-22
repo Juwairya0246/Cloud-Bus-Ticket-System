@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Bus Ticket System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F7FB; --surface:#FFFFFF; --surface-2:#F8FAFC; --border:#E2E8F0;
+    --text:#1E293B; --muted:#64748B;
+    --primary:#4F46E5; --primary-dark:#4338CA;
+    --good:#10B981; --good-bg:#ECFDF5;
+    --warn:#F59E0B; --warn-bg:#FFFBEB;
+    --bad:#EF4444; --bad-bg:#FEF2F2;
+    --accent2:#06B6D4;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;}
+  h1,h2{font-family:'Space Grotesk',sans-serif; margin:0;}
+  .topbar{height:4px; width:100%; background:linear-gradient(90deg,#4F46E5,#06B6D4,#10B981);}
+  .wrap{max-width:1000px; margin:0 auto; padding:36px 22px 80px;}
+  header{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:32px; flex-wrap:wrap; gap:16px;}
+  .title-block h1{font-size:30px; letter-spacing:-0.02em;}
+  .title-block p{color:var(--muted); margin:6px 0 0; font-size:14px;}
+  .sync-badge{display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); padding:9px 16px; border-radius:999px; font-size:13px; color:var(--muted); box-shadow:0 1px 2px rgba(15,23,42,.04);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--bad); flex-shrink:0; transition:background .3s;}
+  .dot.live{background:var(--good); animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5);} 70%{box-shadow:0 0 0 8px rgba(16,185,129,0);} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0);}}
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-bottom:28px;}
+  .stat-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .stat-card .num{font-family:'Space Grotesk',sans-serif; font-size:32px; font-weight:700; color:var(--primary);}
+  .stat-card .label{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.07em; margin-top:6px; font-weight:600;}
+  .stat-card.booked .num{color:var(--good);} .stat-card.cancelled .num{color:var(--bad);} .stat-card.completed .num{color:var(--warn);}
+  .panel{background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px; margin-bottom:24px; box-shadow:0 1px 3px rgba(15,23,42,.06);}
+  .panel h2{font-size:17px; margin-bottom:18px;}
+  form{display:grid; grid-template-columns:1.2fr 1.2fr 1fr .8fr 1fr auto; gap:12px; align-items:end;}
+  @media (max-width:820px){ form{grid-template-columns:1fr 1fr;} }
+  label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px; font-weight:600;}
+  input, select{width:100%; background:var(--surface-2); border:1px solid var(--border); color:var(--text); padding:11px 13px; border-radius:9px; font-size:14px; font-family:inherit;}
+  input:focus, select:focus{outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+  button{background:var(--primary); color:#fff; border:none; font-weight:600; padding:11px 20px; border-radius:9px; cursor:pointer; font-size:14px; font-family:inherit; transition:background .15s;}
+  button:hover{background:var(--primary-dark);}
+  button.ghost{background:transparent; border:1px solid var(--border); color:var(--muted); padding:7px 13px; font-weight:600; font-size:13px;}
+  button.ghost:hover{background:var(--surface-2); color:var(--text);}
+  button.danger{background:transparent; border:1px solid var(--bad); color:var(--bad); padding:7px 13px; font-weight:600; font-size:13px;}
+  button.danger:hover{background:var(--bad-bg);}
+  table{width:100%; border-collapse:collapse; margin-top:4px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); padding:11px 13px; border-bottom:2px solid var(--border); font-weight:700;}
+  td{padding:13px; border-bottom:1px solid var(--border); font-size:14px;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface-2);}
+  .badge{padding:4px 11px; border-radius:999px; font-size:12px; font-weight:700;}
+  .badge.Booked{background:var(--good-bg); color:var(--good);}
+  .badge.Cancelled{background:var(--bad-bg); color:var(--bad);}
+  .badge.Completed{background:var(--warn-bg); color:var(--warn);}
+  .empty{text-align:center; color:var(--muted); padding:44px 0; font-size:14px;}
+  .actions{display:flex; gap:8px;}
+  footer{text-align:center; color:var(--muted); font-size:12px; margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <h1>Cloud Bus Ticket System</h1>
+      <p>Book, track, and manage bus tickets — synced live to the cloud</p>
+    </div>
+    <div class="sync-badge"><span class="dot" id="syncDot"></span><span id="syncText">Connecting…</span></div>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="statTotal">0</div><div class="label">Total Tickets</div></div>
+    <div class="stat-card booked"><div class="num" id="statBooked">0</div><div class="label">Booked</div></div>
+    <div class="stat-card cancelled"><div class="num" id="statCancelled">0</div><div class="label">Cancelled</div></div>
+    <div class="stat-card completed"><div class="num" id="statCompleted">0</div><div class="label">Completed</div></div>
+  </div>
+
+  <div class="panel">
+    <h2>Book a Ticket</h2>
+    <form id="recordForm">
+      <div><label>Passenger Name</label><input id="fName" required placeholder="e.g. Omar Khaled"></div>
+      <div><label>Route</label><input id="fRoute" required placeholder="e.g. Cairo → Alexandria"></div>
+      <div><label>Travel Date</label><input id="fDate" type="date" required></div>
+      <div><label>Seat No.</label><input id="fSeat" required placeholder="12A"></div>
+      <div><label>Price (EGP)</label><input id="fPrice" type="number" min="0" required placeholder="150"></div>
+      <button type="submit">Book Ticket</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>All Bookings</h2>
+    <table>
+      <thead><tr><th>Passenger</th><th>Route</th><th>Date</th><th>Seat</th><th>Price</th><th>Status</th><th></th></tr></thead>
+      <tbody id="recordBody"></tbody>
+    </table>
+    <div class="empty" id="emptyState">No bookings yet — book your first ticket above.</div>
+  </div>
+
+  <footer>Built for UneeQ Interns · Cloud Computing Track</footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+  // ====== PASTE YOUR FIREBASE CONFIG HERE (same project as Attendance System is fine) ======
+ const firebaseConfig = {
+  apiKey: "AIzaSyCmh17ozxetkp0GW1najnhH2Qh60db2Cng",
+  authDomain: "uneeq-cloud-tasks-23384.firebaseapp.com",
+  projectId: "uneeq-cloud-tasks-23384",
+  storageBucket: "uneeq-cloud-tasks-23384.firebasestorage.app",
+  messagingSenderId: "49827209244",
+  appId: "1:49827209244:web:6db4cdf8d31cd417973fd9",
+  measurementId: "G-KLMYFVN99Q"
+};
+  // ===========================================================================================
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const COLLECTION = "bus_tickets";
+
+  const syncDot = document.getElementById('syncDot');
+  const syncText = document.getElementById('syncText');
+  const recordBody = document.getElementById('recordBody');
+  const emptyState = document.getElementById('emptyState');
+
+  function setSynced(ok){
+    syncDot.classList.toggle('live', ok);
+    syncText.textContent = ok ? 'Synced to cloud' : 'Offline';
+  }
+
+  function renderStats(records){
+    document.getElementById('statTotal').textContent = records.length;
+    document.getElementById('statBooked').textContent = records.filter(r=>r.status==='Booked').length;
+    document.getElementById('statCancelled').textContent = records.filter(r=>r.status==='Cancelled').length;
+    document.getElementById('statCompleted').textContent = records.filter(r=>r.status==='Completed').length;
+  }
+
+  function renderTable(records){
+    recordBody.innerHTML = '';
+    emptyState.style.display = records.length ? 'none' : 'block';
+    records.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.name}</td><td>${r.route}</td><td>${r.date}</td><td>${r.seat}</td><td>${r.price} EGP</td>
+        <td><span class="badge ${r.status}">${r.status}</span></td>
+        <td class="actions">
+          <button class="ghost" onclick="cycleStatus('${r.id}','${r.status}')">Update</button>
+          <button class="danger" onclick="deleteRecord('${r.id}')">Delete</button>
+        </td>`;
+      recordBody.appendChild(tr);
+    });
+  }
+
+  db.collection(COLLECTION).orderBy('date','desc').onSnapshot(snap=>{
+    setSynced(true);
+    const records = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderStats(records);
+    renderTable(records);
+  }, err=>{ console.error(err); setSynced(false); });
+
+  document.getElementById('recordForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const name = document.getElementById('fName').value.trim();
+    const route = document.getElementById('fRoute').value.trim();
+    const date = document.getElementById('fDate').value;
+    const seat = document.getElementById('fSeat').value.trim();
+    const price = Number(document.getElementById('fPrice').value);
+    if(!name || !route || !date || !seat) return;
+    await db.collection(COLLECTION).add({name, route, date, seat, price, status:'Booked', createdAt: Date.now()});
+    e.target.reset();
+  });
+
+  const cycle = {Booked:'Completed', Completed:'Cancelled', Cancelled:'Booked'};
+  window.cycleStatus = async (id, current)=>{
+    await db.collection(COLLECTION).doc(id).update({status: cycle[current]});
+  };
+  window.deleteRecord = async (id)=>{
+    if(confirm('Delete this booking?')) await db.collection(COLLECTION).doc(id).delete();
+  };
+</script>
+</body>
+</html>
